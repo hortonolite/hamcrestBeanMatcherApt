@@ -22,6 +22,7 @@
 	</modules>
 	<properties>
 		<java.version>8</java.version>
+		<sonar.organization>hortonolite</sonar.organization>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
