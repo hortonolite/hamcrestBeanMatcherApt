@@ -1,0 +1,40 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.jresearch</groupId>
+		<artifactId>org.jresearch.pom</artifactId>
+		<version>29-SNAPSHOT</version>
+	</parent>
+	<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
+	<artifactId>org.jresearch.hamcrest.beanMatcher.pom</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+	<name>JRS: Hamcrest bean matcher APT POM</name>
+	<url>https://github.com/hortonolite/bean-matcher</url>
+	<scm>
+		<developerConnection>scm:git:https://github.com/hortonolite/bean-matcher</developerConnection>
+		<url>https://github.com/hortonolite/bean-matcher</url>
+		<tag>HEAD</tag>
+	</scm>
+	<modules>
+		<module>../annotation</module>
+		<module>../processor</module>
+	</modules>
+	<properties>
+		<java.version>8</java.version>
+	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
+				<artifactId>org.jresearch.hamcrest.beanMatcher.annotation</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
+				<artifactId>org.jresearch.hamcrest.beanMatcher.processor</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+</project>
