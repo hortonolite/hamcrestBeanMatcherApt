@@ -12,8 +12,8 @@
 	<name>JRS: Hamcrest bean matcher APT POM</name>
 	<url>https://github.com/hortonolite/bean-matcher</url>
 	<scm>
-		<developerConnection>scm:git:https://github.com/hortonolite/bean-matcher</developerConnection>
-		<url>https://github.com/hortonolite/bean-matcher</url>
+		<developerConnection>scm:git:https://github.com/hortonolite/hamcrestBeanMatcherApt.git</developerConnection>
+		<url>https://github.com/hortonolite/hamcrestBeanMatcherApt</url>
 		<tag>HEAD</tag>
 	</scm>
 	<modules>
