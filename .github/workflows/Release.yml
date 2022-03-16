@@ -13,7 +13,7 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v2
       with:
-        java-version: '11'
+        java-version: '8'
         distribution: 'zulu'
         cache: maven
         gpg-private-key: ${{ secrets.GPG_KEY }} 
@@ -44,12 +44,4 @@ jobs:
     - name: Release generator
       run: mvn release:clean release:prepare release:perform -B -P ci
       working-directory: pom
-    - name: Verion update check data
-      run: mvn versions:resolve-ranges versions:update-properties -Dincludes=com.jresearchsoft*:*,org.jresearch*:* -B
-      working-directory: data
-    - name: Release data
-      run: mvn release:clean release:prepare release:perform -B -P ci
-      working-directory: data
-    - name: Push released version to GitHub
-      run: git push && git push --tags
 
