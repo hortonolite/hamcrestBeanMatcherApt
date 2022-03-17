@@ -31,7 +31,6 @@ import javax.tools.JavaFileObject;
 import org.jresearch.hamcrest.beanmatcher.annotation.BeanMatcher;
 
 import com.google.auto.service.AutoService;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.JavaFile;
@@ -107,39 +106,34 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		Types typeUtils = processingEnv.getTypeUtils();
 		TypeElement element = (TypeElement) typeUtils.asElement(beanClass);
 
-		// try {
-		// BeanInfo beanInfo = Introspector.getBeanInfo(beanClass);
-		// PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-		// if (propertyDescriptors == null || propertyDescriptors.length == 0) {
-		// processingEnv.getMessager().printMessage(Kind.WARNING, String.format("The
-		// class %s has not any recognized properties", beanClass));
-		// return;
-		// }
 		final BeanMatcherBuilder builder = BeanMatcherBuilder.create(processingEnv.getMessager(), packageName, element);
 		element.accept(new ElementScanner8<Void, BeanMatcherBuilder>() {
 			@Override
-			public Void visitExecutable(ExecutableElement e, BeanMatcherBuilder builder) {
-				getProperty(e).ifPresent(builder::add);
-				return super.visitExecutable(e, builder);
+			public Void visitExecutable(ExecutableElement e, BeanMatcherBuilder b) {
+				getProperty(e).ifPresent(b::add);
+				return super.visitExecutable(e, b);
 			}
 		}, builder);
 
 		writeJavaFile(packageName, builder.build(), builder.getStaticImports());
-		// } catch (IntrospectionException e) {
-		// processingEnv.getMessager().printMessage(Kind.WARNING, String.format("Some
-		// erroe while recognized properties for class %s: %s", beanClass,
-		// e.getMessage()));
-		// }
 	}
 
-	protected Optional<String> getProperty(ExecutableElement method) {
+	protected Optional<PropertyInfo> getProperty(ExecutableElement method) {
+		processingEnv.getMessager().printMessage(Kind.NOTE, String.format("Process metthod %s", method));
 		return Optional.of(method)
 				.filter(e -> !TypeKind.VOID.equals(e.getReturnType().getKind()))
 				.filter(e -> e.getParameters().isEmpty())
 				.filter(e -> e.getModifiers().contains(Modifier.PUBLIC))
 				.map(ExecutableElement::getSimpleName)
 				.map(Name::toString)
-				.map(BeanMatcherProcessor::getPropertyName);
+				.map(BeanMatcherProcessor::getPropertyName)
+				.map(name -> PropertyInfo.of(getPropertyType(method), name));
+	}
+
+	private ClassName getPropertyType(ExecutableElement method) {
+		Types typeUtils = processingEnv.getTypeUtils();
+		TypeElement element = (TypeElement) typeUtils.asElement(method.getReturnType());
+		return ClassName.get(element);
 	}
 
 	protected static String getPropertyName(String methodName) {
@@ -152,10 +146,6 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 			return Optional.of(methodName.substring(prefix.length()));
 		}
 		return Optional.empty();
-	}
-
-	private void writeJavaFile(final Name packageName, TypeSpec spec) {
-		writeJavaFile(packageName, spec, ImmutableList.of());
 	}
 
 	private void writeJavaFile(final Name packageName, TypeSpec spec, List<ClassName> staticImports) {

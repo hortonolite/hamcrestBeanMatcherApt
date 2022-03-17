@@ -107,26 +107,25 @@ public class BeanMatcherBuilder {
 		return new BeanMatcherBuilder(messager, packageName, String.format("%sMatcher", beanClass.getSimpleName().toString()), beanClass);
 	}
 
-	public void add(String propertyName) {
-		messager.printMessage(Kind.NOTE, String.format("Process property %s", propertyName));
-		String methodName = String.format("with%s", propertyName);
+	public void add(PropertyInfo propertyInfo) {
+		messager.printMessage(Kind.NOTE, String.format("Process property %s", propertyInfo));
+		String methodName = String.format("with%s", propertyInfo.getName());
 
-		ClassName propertyType = ClassName.get(String.class);
-		TypeName wildcard = WildcardTypeName.supertypeOf(propertyType);
+		TypeName wildcard = WildcardTypeName.supertypeOf(propertyInfo.getType());
 		ParameterizedTypeName matcher = ParameterizedTypeName.get(ClassName.get(Matcher.class), wildcard);
 
 		MethodSpec withMatcherMethod = MethodSpec.methodBuilder(methodName)
 				.addModifiers(Modifier.PUBLIC)
 				.addParameter(matcher, "matcher")
 				.returns(mattcherClassName)
-				.addStatement("return add($S, matcher)", Introspector.decapitalize(propertyName))
+				.addStatement("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()))
 				.build();
 
 		poetBuilder.addMethod(withMatcherMethod);
 
 		MethodSpec withValueMethod = MethodSpec.methodBuilder(methodName)
 				.addModifiers(Modifier.PUBLIC)
-				.addParameter(propertyType, "testValue")
+				.addParameter(propertyInfo.getType(), "testValue")
 				.returns(mattcherClassName)
 				.addStatement("return $L(equalTo(testValue))", methodName)
 				.build();

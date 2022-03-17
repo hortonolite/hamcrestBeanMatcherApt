@@ -1,15 +1,17 @@
 package org.jresearch.hamcrest.beanmatcher.test;
 
+import java.util.List;
+
+import lombok.Builder;
+import lombok.Value;
+
+@Value
+@Builder
 public class TestBean02 {
 
-	private String stringValue;
+	String stringValue;
+	String stringValue2;
 
-	public String getStringValue() {
-		return stringValue;
-	}
-
-	public void setStringValue(String stringValue) {
-		this.stringValue = stringValue;
-	}
+	List<String> listValue;
 
 }
