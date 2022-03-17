@@ -15,7 +15,7 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v2
       with:
-        java-version: '8'
+        java-version: '17'
         distribution: 'zulu'
         cache: maven
     - uses: s4u/maven-settings-action@v2.5.0
@@ -57,7 +57,7 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v2
       with:
-        java-version: '11'
+        java-version: '17'
         distribution: 'zulu'
         cache: maven
     - name: Cache SonarCloud packages
