@@ -1,11 +1,16 @@
 package org.jresearch.hamcrest.beanmatcher.apt;
 
-import com.squareup.javapoet.ClassName;
+import java.util.List;
 
+import com.squareup.javapoet.TypeName;
+
+import lombok.Builder;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
+@Value
+@Builder
 public class PropertyInfo {
-	ClassName type;
+	List<TypeName> types;
 	String name;
+	PropertyKind kind;
 }
