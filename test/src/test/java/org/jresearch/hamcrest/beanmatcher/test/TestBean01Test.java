@@ -18,19 +18,19 @@ class TestBean01Test {
 	@MethodSource()
 	void testTestBean02(Matcher<TestBean02> matcher) {
 		TestBean02 bean = TestBean02.builder()
-			.stringValue("value01")
-			.listValue(List.of("a", "b", "c"))
-			.listValue2(List.of(Short.valueOf((short) 2), 3))
-			.build();
+				.stringValue("value01")
+				.listValue(List.of("a", "b", "c"))
+				.listValue2(List.of(Short.valueOf((short) 2), 3))
+				.build();
 		assertThat(bean, matcher);
 	}
 
 	private static Stream<Arguments> testTestBean02() {
 		return Stream.of(
-			Arguments.of(testBean02Matcher().withStringValue("value01").withListValue(contains("a", "b", "c"))),
-			Arguments.of(testBean02Matcher().withStringValue2(is(emptyOrNullString()))),
-			Arguments.of(testBean02Matcher().withListValue2(contains(Short.valueOf((short) 2), 3))));
-//			Arguments.of(testBean02Matcher().withListValue(hasItems("a", "d"))));
+				Arguments.of(testBean02Matcher().withStringValue("value01").withListValue(contains("a", "b", "c"))),
+				Arguments.of(testBean02Matcher().withStringValue2(is(emptyOrNullString()))),
+				Arguments.of(testBean02Matcher().withListValue2(contains(Short.valueOf((short) 2), 3))));
+		// Arguments.of(testBean02Matcher().withListValue(hasItems("a", "d"))));
 	}
 
 }

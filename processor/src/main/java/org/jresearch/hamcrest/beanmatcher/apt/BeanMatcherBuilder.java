@@ -68,6 +68,7 @@ public class BeanMatcherBuilder {
 	private final Messager messager;
 	private final List<ClassName> staticImports = new ArrayList<>();
 	private final ClassName mattcherClassName;
+	private boolean hasProperties = false;
 
 	private BeanMatcherBuilder(Messager messager, final CharSequence packageName, final CharSequence matcherClassName, final TypeElement beanClass) {
 		this.messager = messager;
@@ -77,33 +78,33 @@ public class BeanMatcherBuilder {
 		ParameterizedTypeName superclass = ParameterizedTypeName.get(ClassName.get(AbstractBeanMatcher.class), ClassName.get(beanClass));
 
 		MethodSpec generalCreateMethod = MethodSpec.methodBuilder("create")
-			.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-			.returns(mattcherClassName)
-			.addStatement("return new $T()", mattcherClassName)
-			.build();
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(mattcherClassName)
+				.addStatement("return new $T()", mattcherClassName)
+				.build();
 		MethodSpec specificCreateMethod = MethodSpec.methodBuilder(Introspector.decapitalize(matcherClassName.toString()))
-			.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-			.returns(mattcherClassName)
-			.addStatement("return create()")
-			.build();
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(mattcherClassName)
+				.addStatement("return create()")
+				.build();
 		TypeName wildcard = WildcardTypeName.subtypeOf(TypeName.OBJECT);
 		ParameterizedTypeName matcher = ParameterizedTypeName.get(ClassName.get(Matcher.class), wildcard);
 		MethodSpec addMethod = MethodSpec.methodBuilder("add")
-			.addModifiers(Modifier.PROTECTED)
-			.addParameter(String.class, "propertyName")
-			.addParameter(matcher, "matcher")
-			.returns(mattcherClassName)
-			.addStatement("addPropertyMatcher(propertyName, matcher)")
-			.addStatement("return this")
-			.build();
+				.addModifiers(Modifier.PROTECTED)
+				.addParameter(String.class, "propertyName")
+				.addParameter(matcher, "matcher")
+				.returns(mattcherClassName)
+				.addStatement("addPropertyMatcher(propertyName, matcher)")
+				.addStatement("return this")
+				.build();
 
 		poetBuilder = TypeSpec
-			.classBuilder(mattcherClassName)
-			.addModifiers(Modifier.PUBLIC)
-			.superclass(superclass)
-			.addMethod(generalCreateMethod)
-			.addMethod(specificCreateMethod)
-			.addMethod(addMethod);
+				.classBuilder(mattcherClassName)
+				.addModifiers(Modifier.PUBLIC)
+				.superclass(superclass)
+				.addMethod(generalCreateMethod)
+				.addMethod(specificCreateMethod)
+				.addMethod(addMethod);
 
 	}
 
@@ -112,27 +113,28 @@ public class BeanMatcherBuilder {
 	}
 
 	public void add(PropertyInfo propertyInfo) {
+		hasProperties = true;
 		messager.printMessage(Kind.NOTE, String.format("Process property %s", propertyInfo));
 		String methodName = String.format("with%s", propertyInfo.getName());
 
 		ParameterizedTypeName matcher = getMatcherParameterType(propertyInfo);
 
 		MethodSpec withMatcherMethod = MethodSpec.methodBuilder(methodName)
-			.addModifiers(Modifier.PUBLIC)
-			.addParameter(matcher, "matcher")
-			.returns(mattcherClassName)
-			.addStatement("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()))
-			.build();
+				.addModifiers(Modifier.PUBLIC)
+				.addParameter(matcher, "matcher")
+				.returns(mattcherClassName)
+				.addStatement("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()))
+				.build();
 
 		poetBuilder.addMethod(withMatcherMethod);
 
 		if (propertyInfo.getKind() == PropertyKind.SCALAR && !propertyInfo.getTypes().isEmpty()) {
 			MethodSpec withValueMethod = MethodSpec.methodBuilder(methodName)
-				.addModifiers(Modifier.PUBLIC)
-				.addParameter(propertyInfo.getTypes().get(0), "testValue")
-				.returns(mattcherClassName)
-				.addStatement("return $L(equalTo(testValue))", methodName)
-				.build();
+					.addModifiers(Modifier.PUBLIC)
+					.addParameter(TypeName.get(propertyInfo.getTypes().get(0)), "testValue")
+					.returns(mattcherClassName)
+					.addStatement("return $L(equalTo(testValue))", methodName)
+					.build();
 
 			poetBuilder.addMethod(withValueMethod);
 		}
@@ -141,18 +143,19 @@ public class BeanMatcherBuilder {
 	private ParameterizedTypeName getMatcherParameterType(PropertyInfo propertyInfo) {
 		switch (propertyInfo.getKind()) {
 		case SCALAR:
-			return ParameterizedTypeName.get(ClassName.get(Matcher.class), WildcardTypeName.supertypeOf(propertyInfo.getTypes().get(0).box()));
+			return ParameterizedTypeName.get(ClassName.get(Matcher.class), WildcardTypeName.supertypeOf(TypeName.get(propertyInfo.getTypes().get(0)).box()));
 		case ITERABLE:
-			ParameterizedTypeName iterable = ParameterizedTypeName.get(ClassName.get(Iterable.class), WildcardTypeName.subtypeOf(propertyInfo.getTypes().get(0)));
+			ParameterizedTypeName iterable = ParameterizedTypeName.get(ClassName.get(Iterable.class), WildcardTypeName.subtypeOf(TypeName.get(propertyInfo.getTypes().get(0))));
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), iterable);
 		case MAP:
 			TypeName[] wildcards = StreamEx.of(propertyInfo.getTypes())
-				.map(WildcardTypeName::subtypeOf)
-				.toArray(TypeName.class);
+					.map(TypeName::get)
+					.map(WildcardTypeName::subtypeOf)
+					.toArray(TypeName.class);
 			ParameterizedTypeName map = ParameterizedTypeName.get(ClassName.get(Map.class), wildcards);
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), map);
 		case ARRAY:
-			ArrayTypeName array = ArrayTypeName.of(propertyInfo.getTypes().get(0));
+			ArrayTypeName array = ArrayTypeName.of(TypeName.get(propertyInfo.getTypes().get(0)));
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), array);
 		default:
 			String msg = String.format("Unsupported property kind %s", propertyInfo.getKind());
@@ -168,6 +171,10 @@ public class BeanMatcherBuilder {
 
 	public TypeSpec build() {
 		return poetBuilder.build();
+	}
+
+	public boolean hasProperties() {
+		return hasProperties;
 	}
 
 }

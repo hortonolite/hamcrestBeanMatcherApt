@@ -9,7 +9,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class TestBean02 {
+public class TestBean03 {
 
 	String stringValue;
 	String stringValue2;
@@ -25,6 +25,4 @@ public class TestBean02 {
 	Map<String, Integer> mapValue;
 
 	AccessLevel enumValue;
-
-	TestBean03 anotherBean;
 }
