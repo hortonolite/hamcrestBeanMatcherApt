@@ -5,6 +5,7 @@ import static org.hamcrest.core.IsEqual.*;
 import org.hamcrest.Matcher;
 import org.jresearch.hamcrest.beanmatcher.matcher.AbstractBeanMatcher;
 
+//Referenced model matcher to model new ideas
 public class TestBean01Matcher extends AbstractBeanMatcher<TestBean01> {
 
 	public static TestBean01Matcher create() {
