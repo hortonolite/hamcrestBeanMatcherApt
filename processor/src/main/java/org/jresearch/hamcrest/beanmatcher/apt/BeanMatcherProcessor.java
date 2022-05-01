@@ -2,6 +2,7 @@ package org.jresearch.hamcrest.beanmatcher.apt;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -64,8 +65,10 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	// Special types
 	private DeclaredType mapType;
 	private DeclaredType iterableType;
+	private DeclaredType collectionType;
 	// Types to ignore while generate Bean Matchers
-	private Set<TypeMirror> ignore;
+	private Set<DeclaredType> ignoreClasses;
+	private Set<Element> ignorePackages;
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -86,13 +89,18 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		// Special types
 		mapType = types.getDeclaredType(elements.getTypeElement(Map.class.getCanonicalName()));
 		iterableType = types.getDeclaredType(elements.getTypeElement(Iterable.class.getCanonicalName()));
+		collectionType = types.getDeclaredType(elements.getTypeElement(Collection.class.getCanonicalName()));
 
 		// Initialize ignore
 		DeclaredType string = types.getDeclaredType(elements.getTypeElement(CharSequence.class.getCanonicalName()));
 		DeclaredType number = types.getDeclaredType(elements.getTypeElement(Number.class.getCanonicalName()));
 		DeclaredType voidType = types.getDeclaredType(elements.getTypeElement(Void.class.getCanonicalName()));
 		DeclaredType enumType = types.getDeclaredType(elements.getTypeElement(Enum.class.getCanonicalName()));
-		ignore = ImmutableSet.of(string, number, voidType, enumType);
+		ignoreClasses = ImmutableSet.of(string, number, voidType, enumType);
+
+		Element javaLangPackage = elements.getPackageElement("java.lang");
+		Element javaUtilPackage = elements.getPackageElement("java.util");
+		ignorePackages = ImmutableSet.of(javaLangPackage, javaUtilPackage);
 		super.init(env);
 	}
 
@@ -100,12 +108,12 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	@Override
 	public boolean process(final Set<? extends TypeElement> annotations, final RoundEnvironment roundEnv) {
 		messager.printMessage(Kind.NOTE, String.format("Call the round %d for %s", round.incrementAndGet(), StreamEx
-				.of(roundEnv.getRootElements()).map(Element::getSimpleName).joining(", ")));
+			.of(roundEnv.getRootElements()).map(Element::getSimpleName).joining(", ")));
 
 		StreamEx.of(roundEnv.getElementsAnnotatedWith(BeanMatcher.class))
-				.filterBy(Element::getKind, ElementKind.PACKAGE)
-				.map(PackageElement.class::cast)
-				.forEach(this::generate);
+			.filterBy(Element::getKind, ElementKind.PACKAGE)
+			.map(PackageElement.class::cast)
+			.forEach(this::generate);
 		return true;
 	}
 
@@ -113,8 +121,8 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		Name packageName = annotatedPackage.getQualifiedName();
 		GeneratorVisitor generatorVisitor = new GeneratorVisitor();
 		getAnnotationMirror(annotatedPackage, BeanMatcher.class)
-				.flatMap(BeanMatcherProcessor::getAnnotationDefaultAttributeValue)
-				.ifPresent(v -> v.accept(generatorVisitor, m -> generateMatcher(m, packageName)));
+			.flatMap(BeanMatcherProcessor::getAnnotationDefaultAttributeValue)
+			.ifPresent(v -> v.accept(generatorVisitor, m -> generateMatcher(m, packageName)));
 		// Generate matchers for transitive beans (referenced from explicit congigured)
 		while (!process.isEmpty()) {
 			generateMatcher(process.poll(), packageName);
@@ -126,8 +134,8 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	private static Optional<AnnotationMirror> getAnnotationMirror(AnnotatedConstruct element, Class<?> annotation) {
 		String annotationName = annotation.getName();
 		return StreamEx.of(element.getAnnotationMirrors())
-				.map(AnnotationMirror.class::cast)
-				.findAny(m -> annotationName.equals(m.getAnnotationType().toString()));
+			.map(AnnotationMirror.class::cast)
+			.findAny(m -> annotationName.equals(m.getAnnotationType().toString()));
 	}
 
 	private static Optional<AnnotationValue> getAnnotationDefaultAttributeValue(AnnotationMirror annotationMirror) {
@@ -137,12 +145,12 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	@SuppressWarnings("resource")
 	private static Optional<AnnotationValue> getAnnotationAttributeValue(AnnotationMirror annotationMirror, String attributeName) {
 		return EntryStream.of(annotationMirror.getElementValues())
-				.mapKeys(ExecutableElement::getSimpleName)
-				.mapKeys(Name::toString)
-				.filterKeys(attributeName::equals)
-				.values()
-				.map(AnnotationValue.class::cast)
-				.findAny();
+			.mapKeys(ExecutableElement::getSimpleName)
+			.mapKeys(Name::toString)
+			.filterKeys(attributeName::equals)
+			.values()
+			.map(AnnotationValue.class::cast)
+			.findAny();
 	}
 
 	private void generateMatcher(final TypeMirror beanClass, final Name packageName) {
@@ -176,35 +184,54 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	@SuppressWarnings("resource")
 	private void processProperty(PropertyInfo propertyInfo, BeanMatcherBuilder beanMatcherBuilder) {
 		StreamEx.of(propertyInfo.getTypes())
-				.filter(this::isEligibleClass)
-				.toListAndThen(process::addAll);
+			.filter(this::isEligibleClass)
+			.toListAndThen(process::addAll);
 		beanMatcherBuilder.add(propertyInfo);
 	}
 
 	private boolean isEligibleClass(TypeMirror beanClass) {
-		return !beanClass.getKind().isPrimitive() && !processed.contains(beanClass) && !ignored(beanClass);
+		return !beanClass.getKind().isPrimitive() && !processed.contains(beanClass) && !ignoredPackage(beanClass) && !ignoredClass(beanClass);
+	}
+
+	private boolean ignoredPackage(TypeMirror beanClass) {
+		Element element = types.asElement(beanClass);
+		if (element == null) {
+			return false;
+		}
+		return ignoredPackage(element.getEnclosingElement());
 	}
 
 	@SuppressWarnings("resource")
-	private boolean ignored(TypeMirror beanClass) {
-		return StreamEx.of(ignore)
-				.anyMatch(parent -> isSameOrExtends(beanClass, parent));
+	private boolean ignoredPackage(Element element) {
+		if (element == null) {
+			return false;
+		}
+		boolean match = StreamEx.of(ignorePackages)
+			.anyMatch(element::equals);
+		return match || ignoredPackage(element.getEnclosingElement());
+	}
+
+	@SuppressWarnings("resource")
+	private boolean ignoredClass(TypeMirror beanClass) {
+		return StreamEx.of(ignoreClasses)
+			.anyMatch(parent -> isSameOrExtends(beanClass, parent));
 	}
 
 	protected Optional<PropertyInfo> getProperty(ExecutableElement method) {
 		messager.printMessage(Kind.NOTE, String.format("Process metthod %s", method));
 		PropertyKind propertyKind = getPropertyKind(method);
+
 		return Optional.of(method)
-				.filter(e -> !TypeKind.VOID.equals(e.getReturnType().getKind()))
-				.filter(e -> e.getParameters().isEmpty())
-				.filter(e -> e.getModifiers().contains(Modifier.PUBLIC))
-				.map(ExecutableElement::getSimpleName)
-				.map(Name::toString)
-				.map(BeanMatcherProcessor::getPropertyName)
-				.map(name -> PropertyInfo.builder().name(name))
-				.map(builder -> builder.kind(propertyKind))
-				.map(builder -> builder.types(getPropertyTypes(propertyKind, method)))
-				.map(PropertyInfo.PropertyInfoBuilder::build);
+			.filter(e -> !TypeKind.VOID.equals(e.getReturnType().getKind()))
+			.filter(e -> e.getParameters().isEmpty())
+			.filter(e -> e.getModifiers().contains(Modifier.PUBLIC))
+			.map(ExecutableElement::getSimpleName)
+			.map(Name::toString)
+			.map(BeanMatcherProcessor::getPropertyName)
+			.map(name -> PropertyInfo.builder().name(name))
+			.map(builder -> builder.kind(propertyKind))
+			.map(builder -> builder.types(getPropertyTypes(propertyKind, method)))
+			.map(PropertyInfo.PropertyInfoBuilder::build);
 	}
 
 	private PropertyKind getPropertyKind(ExecutableElement method) {
@@ -218,8 +245,8 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 			@Override
 			public PropertyKind visitDeclared(DeclaredType type, Void p) {
 				return Optional.of(type)
-						.flatMap(BeanMatcherProcessor.this::checkSpecificKinds)
-						.orElse(PropertyKind.SCALAR);
+					.flatMap(BeanMatcherProcessor.this::checkSpecificKinds)
+					.orElse(PropertyKind.SCALAR);
 			}
 
 			@Override
@@ -234,13 +261,16 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		if (types.isSameType(types.erasure(type), mapType)) {
 			return Optional.of(PropertyKind.MAP);
 		}
+		if (types.isSameType(types.erasure(type), collectionType)) {
+			return Optional.of(PropertyKind.COLLECTION);
+		}
 		if (types.isSameType(types.erasure(type), iterableType)) {
 			return Optional.of(PropertyKind.ITERABLE);
 		}
 		return StreamEx.of(types.directSupertypes(type))
-				.map(this::checkSpecificKinds)
-				.findAny(Optional::isPresent)
-				.orElseGet(Optional::empty);
+			.map(this::checkSpecificKinds)
+			.findAny(Optional::isPresent)
+			.orElseGet(Optional::empty);
 	}
 
 	@SuppressWarnings("resource")
@@ -249,11 +279,11 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 			return true;
 		}
 		return StreamEx.of(types.directSupertypes(type))
-				.anyMatch(st -> isSameOrExtends(st, parent));
+			.anyMatch(st -> isSameOrExtends(st, parent));
 	}
 
 	@SuppressWarnings("resource")
-	private static List<TypeMirror> getPropertyTypes(PropertyKind propertyKind, ExecutableElement method) {
+	private List<TypeMirror> getPropertyTypes(PropertyKind propertyKind, ExecutableElement method) {
 		return method.getReturnType().accept(new SimpleTypeVisitor8<List<TypeMirror>, Void>() {
 			@Override
 			public List<TypeMirror> visitArray(ArrayType type, Void p) {
@@ -265,7 +295,7 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 				if (propertyKind == PropertyKind.SCALAR) {
 					return ImmutableList.of(type);
 				}
-				return StreamEx.of(type.getTypeArguments()).map(TypeMirror.class::cast).toList();
+				return StreamEx.of(type.getTypeArguments()).map(TypeMirror.class::cast).prepend(types.erasure(type)).toList();
 			}
 
 			@Override
