@@ -51,6 +51,14 @@ The generated matcher builder you can use in your tests
 				Arguments.of(testBean01Matcher().withStringValue(StringContains.containsStringIgnoringCase("lUe"))));
 	}
 ```
+## Generated methods
+For each property generates general method accepted Matcher for this property:
+- `withPropertyName(Matcher<PropertyType>)` - generic method allows to construct arbitrary matcher
+### Scalar properties
+- `withPropertyName(PropertyType)` - exact property value, underlines calls the `Matchers.equalTo` method 
+### Iterable, collection, map and Array properties
+- `withProperyNameSize(int)` - allows to check container size (except Iterable)
+- `hasPropertyName(PropertyType)` - alows to check if container has specific entry.
 ## How to use
 add the following project dependency to pom.xml
 ```xml
