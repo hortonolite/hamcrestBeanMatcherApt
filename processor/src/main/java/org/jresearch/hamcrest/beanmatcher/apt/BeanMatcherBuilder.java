@@ -179,11 +179,9 @@ public class BeanMatcherBuilder {
 	}
 
 	private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, String... parametersNames) {
-		if (!propertyInfo.getTypes().isEmpty()) {
-			String methodName = String.format("has%s", propertyInfo.getName());
-			List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), parametersNames);
-			addMatcherMethod(methodName, parameters, statement);
-		}
+		String methodName = String.format("has%s", propertyInfo.getName());
+		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), 1, parametersNames);
+		addMatcherMethod(methodName, parameters, statement);
 	}
 
 	@SuppressWarnings("resource")
@@ -192,9 +190,9 @@ public class BeanMatcherBuilder {
 	}
 
 	@SuppressWarnings("resource")
-	private static List<ParameterSpec> createParameters(List<TypeMirror> types, String... names) {
+	private static List<ParameterSpec> createParameters(List<TypeMirror> types, int offset, String... names) {
 		return EntryStream.of(names)
-			.mapKeys(types::get)
+			.mapKeys(index -> types.get(index + offset))
 			.mapKeyValue(BeanMatcherBuilder::createParameter)
 			.toList();
 	}
@@ -214,12 +212,10 @@ public class BeanMatcherBuilder {
 	}
 
 	private void processScalarProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		if (!propertyInfo.getTypes().isEmpty()) {
-			String methodName = String.format("with%s", propertyInfo.getName());
-			List<ParameterSpec> parameter = createParameters(propertyInfo.getTypes(), TEST_VALUE_PARAMETER);
-			CodeBlock statement = CodeBlock.of("return $L(equalTo($L))", genericMethodName, TEST_VALUE_PARAMETER);
-			addMatcherMethod(methodName, parameter, statement);
-		}
+		String methodName = String.format("with%s", propertyInfo.getName());
+		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), 0, TEST_VALUE_PARAMETER);
+		CodeBlock statement = CodeBlock.of("return $L(equalTo($L))", genericMethodName, TEST_VALUE_PARAMETER);
+		addMatcherMethod(methodName, parameters, statement);
 	}
 
 	private void addMatcherMethod(String methodName, ParameterSpec parameter, CodeBlock statement) {

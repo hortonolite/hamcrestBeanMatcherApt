@@ -98,8 +98,8 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		DeclaredType enumType = types.getDeclaredType(elements.getTypeElement(Enum.class.getCanonicalName()));
 		ignoreClasses = ImmutableSet.of(string, number, voidType, enumType);
 
-		Element javaLangPackage = elements.getPackageElement("java.lang");
-		Element javaUtilPackage = elements.getPackageElement("java.util");
+		Element javaLangPackage = elements.getTypeElement(Iterable.class.getCanonicalName()).getEnclosingElement();
+		Element javaUtilPackage = elements.getTypeElement(Map.class.getCanonicalName()).getEnclosingElement();
 		ignorePackages = ImmutableSet.of(javaLangPackage, javaUtilPackage);
 		super.init(env);
 	}
