@@ -44,4 +44,6 @@ jobs:
     - name: Release generator
       run: mvn release:clean release:prepare release:perform -B -P ci
       working-directory: pom
+    - name: Push released version to GitHub
+      run: git push && git push --tags
 
