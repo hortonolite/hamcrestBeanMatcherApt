@@ -59,7 +59,7 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	private final AtomicInteger round = new AtomicInteger();
 	private Types types;
 	private Messager messager;
-	private final Set<TypeMirror> processed = new HashSet<>();
+	private final Set<Element> processed = new HashSet<>();
 	private final Queue<TypeMirror> process = new LinkedList<>();
 
 	// Special types
@@ -91,12 +91,8 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		iterableType = types.getDeclaredType(elements.getTypeElement(Iterable.class.getCanonicalName()));
 		collectionType = types.getDeclaredType(elements.getTypeElement(Collection.class.getCanonicalName()));
 
-		// Initialize ignore
-		DeclaredType string = types.getDeclaredType(elements.getTypeElement(CharSequence.class.getCanonicalName()));
-		DeclaredType number = types.getDeclaredType(elements.getTypeElement(Number.class.getCanonicalName()));
-		DeclaredType voidType = types.getDeclaredType(elements.getTypeElement(Void.class.getCanonicalName()));
-		DeclaredType enumType = types.getDeclaredType(elements.getTypeElement(Enum.class.getCanonicalName()));
-		ignoreClasses = ImmutableSet.of(string, number, voidType, enumType);
+		// Initialize ignore if any
+		ignoreClasses = ImmutableSet.of();
 
 		Element javaLangPackage = elements.getTypeElement(Iterable.class.getCanonicalName()).getEnclosingElement();
 		Element javaUtilPackage = elements.getTypeElement(Map.class.getCanonicalName()).getEnclosingElement();
@@ -123,7 +119,7 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		getAnnotationMirror(annotatedPackage, BeanMatcher.class)
 			.flatMap(BeanMatcherProcessor::getAnnotationDefaultAttributeValue)
 			.ifPresent(v -> v.accept(generatorVisitor, m -> generateMatcher(m, packageName)));
-		// Generate matchers for transitive beans (referenced from explicit congigured)
+		// Generate matchers for transitive beans (referenced from explicit configured)
 		while (!process.isEmpty()) {
 			generateMatcher(process.poll(), packageName);
 		}
@@ -154,10 +150,11 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	}
 
 	private void generateMatcher(final TypeMirror beanClass, final Name packageName) {
-		messager.printMessage(Kind.NOTE, String.format("Generate bean matcher for %s", beanClass));
-		if (!processed.add(beanClass)) {
+		if (!processed.add(types.asElement(beanClass))) {
+			messager.printMessage(Kind.NOTE, String.format("Generation of bean matcher for %s is skipped (already processed)", beanClass));
 			return;
 		}
+		messager.printMessage(Kind.NOTE, String.format("Generate bean matcher for %s", beanClass));
 
 		TypeElement element = (TypeElement) types.asElement(beanClass);
 		if (element == null) {
@@ -190,7 +187,7 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	}
 
 	private boolean isEligibleClass(TypeMirror beanClass) {
-		return !beanClass.getKind().isPrimitive() && !processed.contains(beanClass) && !ignoredPackage(beanClass) && !ignoredClass(beanClass);
+		return !beanClass.getKind().isPrimitive() && !processed.contains(types.asElement(beanClass)) && !ignoredPackage(beanClass) && !ignoredClass(beanClass);
 	}
 
 	private boolean ignoredPackage(TypeMirror beanClass) {

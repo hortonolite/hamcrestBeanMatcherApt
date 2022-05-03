@@ -44,6 +44,9 @@ jobs:
     - name: Release generator
       run: mvn release:clean release:prepare release:perform -B -P ci
       working-directory: pom
+    - name: Update parent in test project
+      run: mvn versions:update-parent -Dincludes=com.jresearchsoft*:*,org.jresearch*:* -B
+      working-directory: test
     - name: Push released version to GitHub
       run: git push && git push --tags
 

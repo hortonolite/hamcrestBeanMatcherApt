@@ -158,12 +158,12 @@ public class BeanMatcherBuilder {
 		CodeBlock statement = CodeBlock.of("return $L(aMapWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
 		addSizeMethod(propertyInfo, statement);
 		CodeBlock hasStatement = CodeBlock.of("return $L(hasEntry($L))", genericMethodName, formatParameters("key", TEST_VALUE_PARAMETER));
-		addHasMethod(propertyInfo, hasStatement, "key", TEST_VALUE_PARAMETER);
+		addHasMethod(propertyInfo, hasStatement, 1, "key", TEST_VALUE_PARAMETER);
 	}
 
 	private void processIterableProperty(PropertyInfo propertyInfo, String genericMethodName) {
 		CodeBlock statement = CodeBlock.of("return $L($T.hasItem($L))", genericMethodName, IsIterableContaining.class, TEST_VALUE_PARAMETER);
-		addHasMethod(propertyInfo, statement, TEST_VALUE_PARAMETER);
+		addHasMethod(propertyInfo, statement, 1, TEST_VALUE_PARAMETER);
 	}
 
 	private void processCollectionProperty(PropertyInfo propertyInfo, String genericMethodName) {
@@ -175,12 +175,12 @@ public class BeanMatcherBuilder {
 		CodeBlock statement = CodeBlock.of("return $L(arrayWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
 		addSizeMethod(propertyInfo, statement);
 		CodeBlock hasStatement = CodeBlock.of("return $L(hasItemInArray($L))", genericMethodName, TEST_VALUE_PARAMETER);
-		addHasMethod(propertyInfo, hasStatement, TEST_VALUE_PARAMETER);
+		addHasMethod(propertyInfo, hasStatement, 0, TEST_VALUE_PARAMETER);
 	}
 
-	private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, String... parametersNames) {
+	private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, int offset, String... parametersNames) {
 		String methodName = String.format("has%s", propertyInfo.getName());
-		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), 1, parametersNames);
+		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), offset, parametersNames);
 		addMatcherMethod(methodName, parameters, statement);
 	}
 
