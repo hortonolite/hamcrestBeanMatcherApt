@@ -27,6 +27,7 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.PackageElement;
+import javax.lang.model.element.QualifiedNameable;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
 import javax.lang.model.type.DeclaredType;
@@ -68,7 +69,7 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	private DeclaredType collectionType;
 	// Types to ignore while generate Bean Matchers
 	private Set<DeclaredType> ignoreClasses;
-	private Set<Element> ignorePackages;
+	private Set<String> ignorePackagePrfixes = ImmutableSet.of("com.sun", "java", "javax", "jdk");
 
 	@Override
 	public Set<String> getSupportedAnnotationTypes() {
@@ -94,9 +95,6 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		// Initialize ignore if any
 		ignoreClasses = ImmutableSet.of();
 
-		Element javaLangPackage = elements.getTypeElement(Iterable.class.getCanonicalName()).getEnclosingElement();
-		Element javaUtilPackage = elements.getTypeElement(Map.class.getCanonicalName()).getEnclosingElement();
-		ignorePackages = ImmutableSet.of(javaLangPackage, javaUtilPackage);
 		super.init(env);
 	}
 
@@ -203,9 +201,17 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		if (element == null) {
 			return false;
 		}
-		boolean match = StreamEx.of(ignorePackages)
-			.anyMatch(element::equals);
+		boolean match = StreamEx.of(ignorePackagePrfixes)
+			.anyMatch(pref -> startWith(element, pref));
 		return match || ignoredPackage(element.getEnclosingElement());
+	}
+
+	private static boolean startWith(Element element, String packagePrefix) {
+		if (element instanceof QualifiedNameable) {
+			Name qualifiedName = ((QualifiedNameable) element).getQualifiedName();
+			return qualifiedName.toString().toLowerCase().startsWith(packagePrefix);
+		}
+		return false;
 	}
 
 	@SuppressWarnings("resource")

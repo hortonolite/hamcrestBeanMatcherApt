@@ -1,5 +1,6 @@
 package org.jresearch.hamcrest.beanmatcher.test;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -25,4 +26,7 @@ public class TestBean03 {
 	Map<String, Integer> mapValue;
 
 	AccessLevel enumValue;
+
+	Instant time;
+
 }
