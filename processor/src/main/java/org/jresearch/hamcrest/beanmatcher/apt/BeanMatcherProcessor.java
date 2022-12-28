@@ -161,6 +161,17 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 		}
 
 		final BeanMatcherBuilder builder = BeanMatcherBuilder.create(messager, packageName, element);
+
+		generateElementMatcher(element, builder);
+
+		if (builder.hasProperties()) {
+			writeJavaFile(packageName, builder.build(), builder.getStaticImports());
+		} else {
+			messager.printMessage(Kind.WARNING, String.format("Bean %s has not properties. Skip matcher generation", beanClass), element);
+		}
+	}
+
+	private void generateElementMatcher(final TypeElement element, final BeanMatcherBuilder builder) {
 		element.accept(new ElementScanner8<Void, BeanMatcherBuilder>() {
 			@Override
 			public Void visitExecutable(ExecutableElement e, BeanMatcherBuilder b) {
@@ -168,12 +179,16 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 				return super.visitExecutable(e, b);
 			}
 		}, builder);
-
-		if (builder.hasProperties()) {
-			writeJavaFile(packageName, builder.build(), builder.getStaticImports());
-		} else {
-			messager.printMessage(Kind.WARNING, String.format("Bean %s has not properties. Skip matcher generation", beanClass), element);
+		TypeMirror superclass = element.getSuperclass();
+		if (isEligibleSuperClass(superclass)) {
+			TypeElement superElement = (TypeElement) types.asElement(superclass);
+			if (superElement == null) {
+				messager.printMessage(Kind.WARNING, String.format("Can't get TypeElement for %s", superclass));
+				return;
+			}
+			generateElementMatcher(superElement, builder);
 		}
+
 	}
 
 	@SuppressWarnings("resource")
@@ -186,6 +201,10 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 
 	private boolean isEligibleClass(TypeMirror beanClass) {
 		return !beanClass.getKind().isPrimitive() && !processed.contains(types.asElement(beanClass)) && !ignoredPackage(beanClass) && !ignoredClass(beanClass);
+	}
+
+	private boolean isEligibleSuperClass(TypeMirror beanClass) {
+		return !beanClass.getKind().isPrimitive() && !ignoredPackage(beanClass) && !ignoredClass(beanClass);
 	}
 
 	private boolean ignoredPackage(TypeMirror beanClass) {
