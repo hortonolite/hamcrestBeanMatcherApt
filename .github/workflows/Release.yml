@@ -49,7 +49,10 @@ jobs:
       run: mvn release:clean release:prepare release:perform -B -P ci
       working-directory: pom
     - name: Update parent in test project
-      run: mvn versions:update-parent -Dincludes=com.jresearchsoft*:*,org.jresearch*:* -B
+      run:  |
+        mvn versions:update-parent -Dincludes=com.jresearchsoft*:*,org.jresearch*:* -B
+        git add -A
+        git commit -m "Update parent in test project"
       working-directory: test
     - name: Push released version to GitHub
       run: git push && git push --tags
