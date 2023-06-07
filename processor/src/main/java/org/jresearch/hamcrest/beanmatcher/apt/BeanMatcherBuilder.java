@@ -1,20 +1,5 @@
 package org.jresearch.hamcrest.beanmatcher.apt;
 
-import java.beans.Introspector;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.annotation.processing.Messager;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
-import javax.tools.Diagnostic.Kind;
-
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
-import org.jresearch.hamcrest.beanmatcher.matcher.AbstractBeanMatcher;
-import org.jresearch.hamcrest.beanmatcher.matcher.pecs.IsIterableContaining;
-
 import com.google.common.collect.ImmutableList;
 import com.squareup.javapoet.ArrayTypeName;
 import com.squareup.javapoet.ClassName;
@@ -26,9 +11,24 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 import com.squareup.javapoet.TypeSpec.Builder;
 import com.squareup.javapoet.WildcardTypeName;
-
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
+import org.hamcrest.Matcher;
+import org.hamcrest.Matchers;
+import org.jresearch.hamcrest.beanmatcher.matcher.AbstractBeanMatcher;
+import org.jresearch.hamcrest.beanmatcher.matcher.pecs.IsIterableContaining;
+
+import javax.annotation.processing.Messager;
+import javax.lang.model.element.Modifier;
+import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.TypeMirror;
+import javax.tools.Diagnostic.Kind;
+
+import java.beans.Introspector;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * <pre>
@@ -74,6 +74,7 @@ public class BeanMatcherBuilder {
 	private final Builder poetBuilder;
 	private final Messager messager;
 	private final List<ClassName> staticImports = new ArrayList<>();
+	private final Map<String, Integer> methodNames = new HashMap<>();
 	private final ClassName mattcherClassName;
 	private boolean hasProperties = false;
 
@@ -85,33 +86,33 @@ public class BeanMatcherBuilder {
 		ParameterizedTypeName superclass = ParameterizedTypeName.get(ClassName.get(AbstractBeanMatcher.class), ClassName.get(beanClass));
 
 		MethodSpec generalCreateMethod = MethodSpec.methodBuilder("create")
-			.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-			.returns(mattcherClassName)
-			.addStatement("return new $T()", mattcherClassName)
-			.build();
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(mattcherClassName)
+				.addStatement("return new $T()", mattcherClassName)
+				.build();
 		MethodSpec specificCreateMethod = MethodSpec.methodBuilder(Introspector.decapitalize(matcherClassName.toString()))
-			.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-			.returns(mattcherClassName)
-			.addStatement("return create()")
-			.build();
+				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+				.returns(mattcherClassName)
+				.addStatement("return create()")
+				.build();
 		TypeName wildcard = WildcardTypeName.subtypeOf(TypeName.OBJECT);
 		ParameterizedTypeName matcher = ParameterizedTypeName.get(ClassName.get(Matcher.class), wildcard);
 		MethodSpec addMethod = MethodSpec.methodBuilder("add")
-			.addModifiers(Modifier.PROTECTED)
-			.addParameter(String.class, "propertyName")
-			.addParameter(matcher, "matcher")
-			.returns(mattcherClassName)
-			.addStatement("addPropertyMatcher(propertyName, matcher)")
-			.addStatement("return this")
-			.build();
+				.addModifiers(Modifier.PROTECTED)
+				.addParameter(String.class, "propertyName")
+				.addParameter(matcher, "matcher")
+				.returns(mattcherClassName)
+				.addStatement("addPropertyMatcher(propertyName, matcher)")
+				.addStatement("return this")
+				.build();
 
 		poetBuilder = TypeSpec
-			.classBuilder(mattcherClassName)
-			.addModifiers(Modifier.PUBLIC)
-			.superclass(superclass)
-			.addMethod(generalCreateMethod)
-			.addMethod(specificCreateMethod)
-			.addMethod(addMethod);
+				.classBuilder(mattcherClassName)
+				.addModifiers(Modifier.PUBLIC)
+				.superclass(superclass)
+				.addMethod(generalCreateMethod)
+				.addMethod(specificCreateMethod)
+				.addMethod(addMethod);
 
 	}
 
@@ -192,9 +193,9 @@ public class BeanMatcherBuilder {
 	@SuppressWarnings("resource")
 	private static List<ParameterSpec> createParameters(List<TypeMirror> types, int offset, String... names) {
 		return EntryStream.of(names)
-			.mapKeys(index -> types.get(index + offset))
-			.mapKeyValue(BeanMatcherBuilder::createParameter)
-			.toList();
+				.mapKeys(index -> types.get(index + offset))
+				.mapKeyValue(BeanMatcherBuilder::createParameter)
+				.toList();
 	}
 
 	private static ParameterSpec createParameter(TypeMirror type, String name) {
@@ -222,13 +223,17 @@ public class BeanMatcherBuilder {
 		addMatcherMethod(methodName, ImmutableList.of(parameter), statement);
 	}
 
+	@SuppressWarnings("boxing")
 	private void addMatcherMethod(String methodName, List<ParameterSpec> parameters, CodeBlock statement) {
-		MethodSpec method = MethodSpec.methodBuilder(methodName)
-			.addModifiers(Modifier.PUBLIC)
-			.addParameters(parameters)
-			.returns(mattcherClassName)
-			.addStatement(statement)
-			.build();
+		int counter = methodNames.compute(methodName, (n, c) -> c == null ? 0 : c + 1);
+		String uniqueMethodName = methodName + (counter == 0 ? "" : Integer.toString(counter));
+		methodNames.putIfAbsent(uniqueMethodName, 0);
+		MethodSpec method = MethodSpec.methodBuilder(uniqueMethodName)
+				.addModifiers(Modifier.PUBLIC)
+				.addParameters(parameters)
+				.returns(mattcherClassName)
+				.addStatement(statement)
+				.build();
 		poetBuilder.addMethod(method);
 	}
 
@@ -245,10 +250,10 @@ public class BeanMatcherBuilder {
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type2);
 		case MAP:
 			TypeName[] wildcards = StreamEx.of(propertyInfo.getTypes())
-				.skip(1)
-				.map(TypeName::get)
-				.map(WildcardTypeName::subtypeOf)
-				.toArray(TypeName.class);
+					.skip(1)
+					.map(TypeName::get)
+					.map(WildcardTypeName::subtypeOf)
+					.toArray(TypeName.class);
 			ParameterizedTypeName map = ParameterizedTypeName.get(type, wildcards);
 			WildcardTypeName type3 = WildcardTypeName.supertypeOf(map);
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type3);
