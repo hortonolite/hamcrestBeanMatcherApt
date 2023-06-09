@@ -21,7 +21,14 @@ import org.jresearch.hamcrest.beanmatcher.matcher.pecs.IsIterableContaining;
 import javax.annotation.processing.Messager;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.type.ArrayType;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.ErrorType;
+import javax.lang.model.type.NoType;
+import javax.lang.model.type.PrimitiveType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.SimpleTypeVisitor8;
 import javax.tools.Diagnostic.Kind;
 
 import java.beans.Introspector;
@@ -74,7 +81,7 @@ public class BeanMatcherBuilder {
 	private final Builder poetBuilder;
 	private final Messager messager;
 	private final List<ClassName> staticImports = new ArrayList<>();
-	private final Map<String, Integer> methodNames = new HashMap<>();
+	private final Map<MethodInfo, Integer> methodNames = new HashMap<>();
 	private final ClassName mattcherClassName;
 	private boolean hasProperties = false;
 
@@ -130,7 +137,7 @@ public class BeanMatcherBuilder {
 		ParameterizedTypeName matcher = getMatcherParameterType(propertyInfo);
 		ParameterSpec parameter = createParameter(matcher, "matcher");
 		CodeBlock statement = CodeBlock.of("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()));
-		addMatcherMethod(genericMethodName, parameter, statement);
+		addMatcherMethod(genericMethodName, ParameterInfo.of(Matcher.class.getCanonicalName(), parameter), statement);
 
 		switch (propertyInfo.getKind()) {
 		case SCALAR:
@@ -181,7 +188,7 @@ public class BeanMatcherBuilder {
 
 	private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, int offset, String... parametersNames) {
 		String methodName = String.format("has%s", propertyInfo.getName());
-		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), offset, parametersNames);
+		List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), offset, parametersNames);
 		addMatcherMethod(methodName, parameters, statement);
 	}
 
@@ -191,15 +198,15 @@ public class BeanMatcherBuilder {
 	}
 
 	@SuppressWarnings("resource")
-	private static List<ParameterSpec> createParameters(List<TypeMirror> types, int offset, String... names) {
+	private static List<ParameterInfo> createParameters(List<TypeMirror> types, int offset, String... names) {
 		return EntryStream.of(names)
 				.mapKeys(index -> types.get(index + offset))
 				.mapKeyValue(BeanMatcherBuilder::createParameter)
 				.toList();
 	}
 
-	private static ParameterSpec createParameter(TypeMirror type, String name) {
-		return createParameter(TypeName.get(type), name);
+	private static ParameterInfo createParameter(TypeMirror type, String name) {
+		return ParameterInfo.of(getRawType(type), createParameter(TypeName.get(type), name));
 	}
 
 	private static ParameterSpec createParameter(TypeName type, String name) {
@@ -209,28 +216,38 @@ public class BeanMatcherBuilder {
 	private void addSizeMethod(PropertyInfo propertyInfo, CodeBlock statement) {
 		String methodName = String.format("with%sSize", propertyInfo.getName());
 		ParameterSpec parameter = createParameter(TypeName.INT, TEST_SIZE_PARAMETER);
-		addMatcherMethod(methodName, parameter, statement);
+		addMatcherMethod(methodName, ParameterInfo.of(int.class.getCanonicalName(), parameter), statement);
 	}
 
 	private void processScalarProperty(PropertyInfo propertyInfo, String genericMethodName) {
 		String methodName = String.format("with%s", propertyInfo.getName());
-		List<ParameterSpec> parameters = createParameters(propertyInfo.getTypes(), 0, TEST_VALUE_PARAMETER);
+		List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), 0, TEST_VALUE_PARAMETER);
 		CodeBlock statement = CodeBlock.of("return $L(equalTo($L))", genericMethodName, TEST_VALUE_PARAMETER);
 		addMatcherMethod(methodName, parameters, statement);
 	}
 
-	private void addMatcherMethod(String methodName, ParameterSpec parameter, CodeBlock statement) {
+	private void addMatcherMethod(String methodName, ParameterInfo parameter, CodeBlock statement) {
 		addMatcherMethod(methodName, ImmutableList.of(parameter), statement);
 	}
 
-	@SuppressWarnings("boxing")
-	private void addMatcherMethod(String methodName, List<ParameterSpec> parameters, CodeBlock statement) {
-		int counter = methodNames.compute(methodName, (n, c) -> c == null ? 0 : c + 1);
+	@SuppressWarnings({ "boxing", "resource" })
+	private void addMatcherMethod(String methodName, List<ParameterInfo> parameters, CodeBlock statement) {
+
+		MethodInfo methodInfo = StreamEx.of(parameters)
+				.map(p -> p.getType())
+				.toListAndThen(ps -> MethodInfo.of(methodName, ps));
+
+		List<ParameterSpec> methodParameters = StreamEx.of(parameters)
+				.map(p -> p.getParameterSpec())
+				.toList();
+
+		int counter = methodNames.compute(methodInfo, (n, c) -> c == null ? 0 : c + 1);
 		String uniqueMethodName = methodName + (counter == 0 ? "" : Integer.toString(counter));
-		methodNames.putIfAbsent(uniqueMethodName, 0);
+		// String uniqueMethodName = methodName;
+		methodNames.putIfAbsent(MethodInfo.of(uniqueMethodName, methodInfo.getParameterTypes()), 0);
 		MethodSpec method = MethodSpec.methodBuilder(uniqueMethodName)
 				.addModifiers(Modifier.PUBLIC)
-				.addParameters(parameters)
+				.addParameters(methodParameters)
 				.returns(mattcherClassName)
 				.addStatement(statement)
 				.build();
@@ -278,6 +295,72 @@ public class BeanMatcherBuilder {
 
 	public boolean hasProperties() {
 		return hasProperties;
+	}
+
+	static String getRawType(TypeMirror mirror) {
+		return mirror.accept(new SimpleTypeVisitor8<String, Void>() {
+			@Override
+			public String visitPrimitive(PrimitiveType t, Void p) {
+				switch (t.getKind()) {
+				case BOOLEAN:
+					return boolean.class.getCanonicalName();
+				case BYTE:
+					return byte.class.getCanonicalName();
+				case SHORT:
+					return short.class.getCanonicalName();
+				case INT:
+					return int.class.getCanonicalName();
+				case LONG:
+					return long.class.getCanonicalName();
+				case CHAR:
+					return char.class.getCanonicalName();
+				case FLOAT:
+					return float.class.getCanonicalName();
+				case DOUBLE:
+					return double.class.getCanonicalName();
+				default:
+					throw new AssertionError();
+				}
+			}
+
+			@Override
+			public String visitDeclared(DeclaredType t, Void p) {
+				return ClassName.get((TypeElement) t.asElement()).canonicalName();
+			}
+
+			@Override
+			public String visitError(ErrorType t, Void p) {
+				return visitDeclared(t, p);
+			}
+
+			@Override
+			public String visitArray(ArrayType t, Void p) {
+				return getRawType(t.getComponentType());
+			}
+
+			@Override
+			public String visitTypeVariable(javax.lang.model.type.TypeVariable t, Void p) {
+				return super.visitUnknown(t, p);
+			}
+
+			@Override
+			public String visitWildcard(javax.lang.model.type.WildcardType t, Void p) {
+				return super.visitUnknown(t, p);
+			}
+
+			@Override
+			public String visitNoType(NoType t, Void p) {
+				if (t.getKind() == TypeKind.VOID) {
+					return void.class.getCanonicalName();
+				}
+				return super.visitUnknown(t, p);
+			}
+
+			@Override
+			protected String defaultAction(TypeMirror e, Void p) {
+				throw new IllegalArgumentException("Unexpected type mirror: " + e);
+			}
+		}, null);
 	}
 
 }

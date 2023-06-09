@@ -15,8 +15,8 @@ public class TestBean02 {
 	String stringValue2;
 
 	List<String> listValue;
-
 	List<Number> listValue2;
+	int listValueSize;
 
 	int intValue;
 
