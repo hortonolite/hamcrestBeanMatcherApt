@@ -3,7 +3,7 @@
 	<parent>
 		<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
 		<artifactId>org.jresearch.hamcrest.beanMatcher.pom</artifactId>
-		<version>1.0.5-SNAPSHOT</version>
+		<version>1.0.5</version>
 		<relativePath>../pom/pom.xml</relativePath>
 	</parent>
 	<artifactId>org.jresearch.hamcrest.beanMatcher.annotation</artifactId>
