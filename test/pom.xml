@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
@@ -51,12 +53,20 @@
 				<artifactId>maven-dependency-plugin</artifactId>
 				<configuration>
 					<ignoredUnusedDeclaredDependencies>
-						<ignoredUnusedDeclaredDependency>org.jresearch.hamcrest.beanMatcher:org.jresearch.hamcrest.beanMatcher.annotation</ignoredUnusedDeclaredDependency>
+						<ignoredUnusedDeclaredDependency>
+							org.jresearch.hamcrest.beanMatcher:org.jresearch.hamcrest.beanMatcher.annotation</ignoredUnusedDeclaredDependency>
 					</ignoredUnusedDeclaredDependencies>
 				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<dependencies>
+					<dependency>
+						<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
+						<artifactId>org.jresearch.hamcrest.beanMatcher.processor</artifactId>
+						<version>${project.version}</version>
+					</dependency>
+				</dependencies>
 				<configuration>
 					<showWarnings>true</showWarnings>
 					<annotationProcessorPaths>
@@ -67,7 +77,8 @@
 						</path>
 						<path>
 							<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
-							<artifactId>org.jresearch.hamcrest.beanMatcher.processor</artifactId>
+							<artifactId>
+								org.jresearch.hamcrest.beanMatcher.processor</artifactId>
 							<version>${project.version}</version>
 						</path>
 					</annotationProcessorPaths>

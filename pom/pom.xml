@@ -19,6 +19,7 @@
 	<modules>
 		<module>../annotation</module>
 		<module>../processor</module>
+		<module>../test</module>
 	</modules>
 	<properties>
 		<java.version>8</java.version>

@@ -29,17 +29,8 @@ jobs:
               "password": "${{ secrets.SONATYPE_PASSWORD }}"
           }]        
     - name: Package and test generator
-      run: mvn package -U -B
+      run: mvn deploy -U -B
       working-directory: pom
-    - name: Deploy generator
-      run: mvn deploy -Dmaven.test.skip -B
-      working-directory: pom
-    - name: Package and test data
-      run: mvn package -U -B
-      working-directory: test
-    - name: Deploy data
-      run: mvn deploy -Dmaven.test.skip -B
-      working-directory: test
     - name: Publish Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
@@ -83,10 +74,3 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       run: mvn -B -P coverage verify sonar:sonar -Dsonar.projectKey=${{ secrets.SONAR_KEY }}
       working-directory: pom
-    - name: Build and analyze data
-      env:
-        # Needed to get PR information, if any
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      run: mvn -B -P coverage verify sonar:sonar -Dsonar.projectKey=${{ secrets.SONAR_KEY }}
-      working-directory: test
