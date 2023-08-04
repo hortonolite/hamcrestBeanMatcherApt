@@ -2,7 +2,7 @@ package ignore.me;
 
 import lombok.Value;
 
-@Value
+@Value(staticConstructor = "of")
 public class IgnoreBean {
 	String value;
 }
