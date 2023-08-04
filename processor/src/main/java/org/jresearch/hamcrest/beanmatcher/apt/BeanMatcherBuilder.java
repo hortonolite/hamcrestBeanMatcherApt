@@ -255,14 +255,14 @@ public class BeanMatcherBuilder {
 	}
 
 	private ParameterizedTypeName getMatcherParameterType(PropertyInfo propertyInfo) {
-		ClassName type = (ClassName) TypeName.get(propertyInfo.getTypes().get(0)).box();
+		TypeName type = TypeName.get(propertyInfo.getTypes().get(0)).box();
 		switch (propertyInfo.getKind()) {
 		case SCALAR:
 			WildcardTypeName type1 = WildcardTypeName.supertypeOf(type);
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type1);
 		case COLLECTION:
 		case ITERABLE:
-			ParameterizedTypeName iterable = ParameterizedTypeName.get(type, WildcardTypeName.subtypeOf(TypeName.get(propertyInfo.getTypes().get(1))));
+			ParameterizedTypeName iterable = ParameterizedTypeName.get((ClassName) type, WildcardTypeName.subtypeOf(TypeName.get(propertyInfo.getTypes().get(1))));
 			WildcardTypeName type2 = WildcardTypeName.supertypeOf(iterable);
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type2);
 		case MAP:
@@ -271,7 +271,7 @@ public class BeanMatcherBuilder {
 					.map(TypeName::get)
 					.map(WildcardTypeName::subtypeOf)
 					.toArray(TypeName.class);
-			ParameterizedTypeName map = ParameterizedTypeName.get(type, wildcards);
+			ParameterizedTypeName map = ParameterizedTypeName.get((ClassName) type, wildcards);
 			WildcardTypeName type3 = WildcardTypeName.supertypeOf(map);
 			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type3);
 		case ARRAY:

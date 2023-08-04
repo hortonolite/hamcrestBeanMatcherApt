@@ -10,5 +10,12 @@ import java.lang.annotation.Target;
 @Target(ElementType.PACKAGE)
 @Documented
 public @interface BeanMatcher {
+	/** List of beans to generate matchers */
 	Class<?>[] value();
+
+	/**
+	 * List of packages to ignore - any properties within these packages have been
+	 * ignored
+	 */
+	String[] ignorePackages() default {};
 }

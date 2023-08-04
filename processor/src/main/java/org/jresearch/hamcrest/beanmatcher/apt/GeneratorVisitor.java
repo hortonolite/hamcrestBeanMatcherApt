@@ -20,5 +20,5 @@ public class GeneratorVisitor extends SimpleAnnotationValueVisitor8<Void, Consum
 		values.forEach(v -> v.accept(this, generator));
 		return null;
 	}
-	
+
 }
