@@ -56,9 +56,16 @@ For each property generates general method accepted Matcher for this property:
 - `withPropertyName(Matcher<PropertyType>)` - generic method allows to construct arbitrary matcher
 ### Scalar properties
 - `withPropertyName(PropertyType)` - exact property value, underlines calls the `Matchers.equalTo` method 
-### Iterable, collection, map and Array properties
+### Iterable, collection and Array properties
 - `withProperyNameSize(int)` - allows to check container size (except Iterable)
-- `hasPropertyName(PropertyType)` - alows to check if container has specific entry.
+- `hasPropertyName(ValueType)` - alows to check if container has specific entry.
+### Map properties
+- `withProperyNameSize(int)` - allows to check map size
+- `hasPropertyName(KeyType, ValueType)` - alows to check if map contions specific key/value entry.
+### Bean properties
+For each bean property the generator create a coresponded matcher builder class automatically.
+For a property `MyAnotherBean beanValue;` will be generated `MyAnotherBeanMatcher`
+
 ## How to use
 add the following project dependency to pom.xml
 ```xml
