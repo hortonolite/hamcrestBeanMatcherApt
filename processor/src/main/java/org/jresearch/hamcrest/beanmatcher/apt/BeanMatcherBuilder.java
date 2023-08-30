@@ -19,6 +19,7 @@ import org.jresearch.hamcrest.beanmatcher.matcher.AbstractBeanMatcher;
 import org.jresearch.hamcrest.beanmatcher.matcher.pecs.IsIterableContaining;
 
 import javax.annotation.processing.Messager;
+import javax.lang.model.element.Element;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.ArrayType;
@@ -124,7 +125,20 @@ public class BeanMatcherBuilder {
 	}
 
 	public static BeanMatcherBuilder create(final Messager messager, final CharSequence packageName, final TypeElement beanClass) {
-		return new BeanMatcherBuilder(messager, packageName, String.format("%sMatcher", beanClass.getSimpleName().toString()), beanClass);
+		String matcherClassName = generateMatcherClassName(beanClass);
+		return new BeanMatcherBuilder(messager, packageName, matcherClassName, beanClass);
+	}
+
+	private static String generateMatcherClassName(TypeElement beanClass) {
+		return String.format("%sMatcher", getClassName(beanClass));
+	}
+
+	private static String getClassName(TypeElement beanClass) {
+		Element parent = beanClass.getEnclosingElement();
+		if (parent instanceof TypeElement) {
+			return String.format("%s%s", getClassName((TypeElement) parent), beanClass.getSimpleName().toString());
+		}
+		return beanClass.getSimpleName().toString();
 	}
 
 	public void add(PropertyInfo propertyInfo) {

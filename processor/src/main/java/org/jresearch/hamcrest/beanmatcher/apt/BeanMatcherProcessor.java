@@ -190,6 +190,15 @@ public class BeanMatcherProcessor extends AbstractProcessor {
 	private void generateElementMatcher(final TypeElement element, final BeanMatcherBuilder builder) {
 		element.accept(new ElementScanner8<Void, BeanMatcherBuilder>() {
 			@Override
+			public Void visitType(TypeElement e, BeanMatcherBuilder b) {
+				if (e != element) {
+					messager.printMessage(Kind.NOTE, String.format("Skip inner type %s", e));
+					return DEFAULT_VALUE;
+				}
+				return super.visitType(e, b);
+			}
+
+			@Override
 			public Void visitExecutable(ExecutableElement e, BeanMatcherBuilder b) {
 				getProperty(e).ifPresent(p -> processProperty(p, b));
 				return super.visitExecutable(e, b);
