@@ -7,14 +7,14 @@
 	</parent>
 	<groupId>org.jresearch.hamcrest.beanMatcher</groupId>
 	<artifactId>org.jresearch.hamcrest.beanMatcher.pom</artifactId>
-	<version>1.0.8</version>
+	<version>1.0.9-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>JRS: Hamcrest bean matcher APT POM</name>
 	<url>https://github.com/hortonolite/bean-matcher</url>
 	<scm>
 		<developerConnection>scm:git:https://github.com/hortonolite/hamcrestBeanMatcherApt.git</developerConnection>
 		<url>https://github.com/hortonolite/hamcrestBeanMatcherApt</url>
-		<tag>v1.0.8</tag>
+		<tag>HEAD</tag>
 	</scm>
 	<modules>
 		<module>../annotation</module>
