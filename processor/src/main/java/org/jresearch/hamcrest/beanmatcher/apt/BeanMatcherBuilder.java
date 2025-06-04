@@ -50,26 +50,26 @@ import java.util.Map;
  *
  * public class TestBean01Matcher extends AbstractBeanMatcher<TestBean01> {
  *
- * 	public static TestBean01Matcher create() {
- * 		return new TestBean01Matcher();
- * 	}
+ *     public static TestBean01Matcher create() {
+ *         return new TestBean01Matcher();
+ *     }
  *
- * 	public static TestBean01Matcher testBean01Matcher() {
- * 		return create();
- * 	}
+ *     public static TestBean01Matcher testBean01Matcher() {
+ *         return create();
+ *     }
  *
- * 	protected TestBean01Matcher add(String propertyName, final Matcher<?> matcher) {
- * 		addPropertyMatcher(propertyName, matcher);
- * 		return this;
- * 	}
+ *     protected TestBean01Matcher add(String propertyName, final Matcher<?> matcher) {
+ *         addPropertyMatcher(propertyName, matcher);
+ *         return this;
+ *     }
  *
- * 	public TestBean01Matcher withStringValue(String testValue) {
- * 		return withStringValue(equalTo(testValue));
- * 	}
+ *     public TestBean01Matcher withStringValue(String testValue) {
+ *         return withStringValue(equalTo(testValue));
+ *     }
  *
- * 	public TestBean01Matcher withStringValue(Matcher<String> matcher) {
- * 		return add("stringValue", matcher);
- * 	}
+ *     public TestBean01Matcher withStringValue(Matcher<String> matcher) {
+ *         return add("stringValue", matcher);
+ *     }
  *
  * }
  *
@@ -77,304 +77,308 @@ import java.util.Map;
  */
 public class BeanMatcherBuilder {
 
-	private static final String TEST_VALUE_PARAMETER = "value";
-	private static final String TEST_SIZE_PARAMETER = "size";
-	private final Builder poetBuilder;
-	private final Messager messager;
-	private final List<ClassName> staticImports = new ArrayList<>();
-	private final Map<MethodInfo, Integer> methodNames = new HashMap<>();
-	private final ClassName mattcherClassName;
-	private boolean hasProperties = false;
+    private static final String TEST_VALUE_PARAMETER = "value";
+    private static final String TEST_SIZE_PARAMETER = "size";
+    private final Builder poetBuilder;
+    private final Messager messager;
+    private final List<ClassName> staticImports = new ArrayList<>();
+    private final Map<MethodInfo, Integer> methodNames = new HashMap<>();
+    private final ClassName mattcherClassName;
+    private boolean hasProperties = false;
 
-	private BeanMatcherBuilder(Messager messager, final CharSequence packageName, final CharSequence matcherClassName, final TypeElement beanClass) {
-		this.messager = messager;
+    private BeanMatcherBuilder(Messager messager, final CharSequence packageName, final CharSequence matcherClassName,
+                               final TypeElement beanClass) {
+        this.messager = messager;
 
-		mattcherClassName = ClassName.get(packageName.toString(), matcherClassName.toString());
+        mattcherClassName = ClassName.get(packageName.toString(), matcherClassName.toString());
 
-		ParameterizedTypeName superclass = ParameterizedTypeName.get(ClassName.get(AbstractBeanMatcher.class), ClassName.get(beanClass));
+        ParameterizedTypeName superclass = ParameterizedTypeName.get(ClassName.get(AbstractBeanMatcher.class), ClassName.get(beanClass));
 
-		MethodSpec generalCreateMethod = MethodSpec.methodBuilder("create")
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.returns(mattcherClassName)
-				.addStatement("return new $T()", mattcherClassName)
-				.build();
-		MethodSpec specificCreateMethod = MethodSpec.methodBuilder(Introspector.decapitalize(matcherClassName.toString()))
-				.addModifiers(Modifier.PUBLIC, Modifier.STATIC)
-				.returns(mattcherClassName)
-				.addStatement("return create()")
-				.build();
-		TypeName wildcard = WildcardTypeName.subtypeOf(TypeName.OBJECT);
-		ParameterizedTypeName matcher = ParameterizedTypeName.get(ClassName.get(Matcher.class), wildcard);
-		MethodSpec addMethod = MethodSpec.methodBuilder("add")
-				.addModifiers(Modifier.PROTECTED)
-				.addParameter(String.class, "propertyName")
-				.addParameter(matcher, "matcher")
-				.returns(mattcherClassName)
-				.addStatement("addPropertyMatcher(propertyName, matcher)")
-				.addStatement("return this")
-				.build();
+        MethodSpec generalCreateMethod = MethodSpec.methodBuilder("create")
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+            .returns(mattcherClassName)
+            .addStatement("return new $T()", mattcherClassName)
+            .build();
+        MethodSpec specificCreateMethod = MethodSpec.methodBuilder(Introspector.decapitalize(matcherClassName.toString()))
+            .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+            .returns(mattcherClassName)
+            .addStatement("return create()")
+            .build();
+        TypeName wildcard = WildcardTypeName.subtypeOf(TypeName.OBJECT);
+        ParameterizedTypeName matcher = ParameterizedTypeName.get(ClassName.get(Matcher.class), wildcard);
+        MethodSpec addMethod = MethodSpec.methodBuilder("add")
+            .addModifiers(Modifier.PROTECTED)
+            .addParameter(String.class, "propertyName")
+            .addParameter(matcher, "matcher")
+            .returns(mattcherClassName)
+            .addStatement("addPropertyMatcher(propertyName, matcher)")
+            .addStatement("return this")
+            .build();
 
-		poetBuilder = TypeSpec
-				.classBuilder(mattcherClassName)
-				.addModifiers(Modifier.PUBLIC)
-				.superclass(superclass)
-				.addMethod(generalCreateMethod)
-				.addMethod(specificCreateMethod)
-				.addMethod(addMethod);
+        poetBuilder = TypeSpec
+            .classBuilder(mattcherClassName)
+            .addModifiers(Modifier.PUBLIC)
+            .superclass(superclass)
+            .addMethod(generalCreateMethod)
+            .addMethod(specificCreateMethod)
+            .addMethod(addMethod);
 
-	}
+    }
 
-	public static BeanMatcherBuilder create(final Messager messager, final CharSequence packageName, final TypeElement beanClass) {
-		String matcherClassName = generateMatcherClassName(beanClass);
-		return new BeanMatcherBuilder(messager, packageName, matcherClassName, beanClass);
-	}
+    public static BeanMatcherBuilder create(final Messager messager, final CharSequence packageName, final TypeElement beanClass) {
+        String matcherClassName = generateMatcherClassName(beanClass);
+        return new BeanMatcherBuilder(messager, packageName, matcherClassName, beanClass);
+    }
 
-	private static String generateMatcherClassName(TypeElement beanClass) {
-		return String.format("%sMatcher", getClassName(beanClass));
-	}
+    private static String generateMatcherClassName(TypeElement beanClass) {
+        return String.format("%sMatcher", getClassName(beanClass));
+    }
 
-	private static String getClassName(TypeElement beanClass) {
-		Element parent = beanClass.getEnclosingElement();
-		if (parent instanceof TypeElement) {
-			return String.format("%s%s", getClassName((TypeElement) parent), beanClass.getSimpleName().toString());
-		}
-		return beanClass.getSimpleName().toString();
-	}
+    private static String getClassName(TypeElement beanClass) {
+        Element parent = beanClass.getEnclosingElement();
+        if (parent instanceof TypeElement) {
+            return String.format("%s%s", getClassName((TypeElement) parent), beanClass.getSimpleName().toString());
+        }
+        return beanClass.getSimpleName().toString();
+    }
 
-	public void add(PropertyInfo propertyInfo) {
-		// mark bean that it has at least one matching property
-		hasProperties = true;
-		messager.printMessage(Kind.NOTE, String.format("Process property %s", propertyInfo));
+    public void add(PropertyInfo propertyInfo) {
+        // mark bean that it has at least one matching property
+        hasProperties = true;
+        messager.printMessage(Kind.NOTE, String.format("Process property %s", propertyInfo));
 
-		// Add generic matcher method
-		String genericMethodName = String.format("with%s", propertyInfo.getName());
-		ParameterizedTypeName matcher = getMatcherParameterType(propertyInfo);
-		ParameterSpec parameter = createParameter(matcher, "matcher");
-		CodeBlock statement = CodeBlock.of("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()));
-		addMatcherMethod(genericMethodName, ParameterInfo.of(Matcher.class.getCanonicalName(), parameter), statement);
+        // Add generic matcher method
+        String genericMethodName = String.format("with%s", propertyInfo.getName());
+        ParameterizedTypeName matcher = getMatcherParameterType(propertyInfo);
+        ParameterSpec parameter = createParameter(matcher, "matcher");
+        CodeBlock statement = CodeBlock.of("return add($S, matcher)", Introspector.decapitalize(propertyInfo.getName()));
+        addMatcherMethod(genericMethodName, ParameterInfo.of(Matcher.class.getCanonicalName(), parameter), statement);
 
-		switch (propertyInfo.getKind()) {
-		case SCALAR:
-			processScalarProperty(propertyInfo, genericMethodName);
-			break;
-		case ARRAY:
-			processArrayProperty(propertyInfo, genericMethodName);
-			break;
-		case COLLECTION:
-			processIterableProperty(propertyInfo, genericMethodName);
-			processCollectionProperty(propertyInfo, genericMethodName);
-			break;
-		case ITERABLE:
-			processIterableProperty(propertyInfo, genericMethodName);
-			break;
-		case MAP:
-			processMapProperty(propertyInfo, genericMethodName);
-			break;
-		default:
-			break;
-		}
+        switch (propertyInfo.getKind()) {
+            case SCALAR:
+                processScalarProperty(propertyInfo, genericMethodName);
+                break;
+            case ARRAY:
+                processArrayProperty(propertyInfo, genericMethodName);
+                break;
+            case COLLECTION:
+                processIterableProperty(propertyInfo, genericMethodName);
+                processCollectionProperty(propertyInfo, genericMethodName);
+                break;
+            case ITERABLE:
+                processIterableProperty(propertyInfo, genericMethodName);
+                break;
+            case MAP:
+                processMapProperty(propertyInfo, genericMethodName);
+                break;
+            default:
+                break;
+        }
 
-	}
+    }
 
-	private void processMapProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		CodeBlock statement = CodeBlock.of("return $L(aMapWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
-		addSizeMethod(propertyInfo, statement);
-		CodeBlock hasStatement = CodeBlock.of("return $L(hasEntry($L))", genericMethodName, formatParameters("key", TEST_VALUE_PARAMETER));
-		addHasMethod(propertyInfo, hasStatement, 1, "key", TEST_VALUE_PARAMETER);
-	}
+    private void processMapProperty(PropertyInfo propertyInfo, String genericMethodName) {
+        CodeBlock statement = CodeBlock.of("return $L(aMapWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
+        addSizeMethod(propertyInfo, statement);
+        CodeBlock hasStatement = CodeBlock.of("return $L(hasEntry($L))", genericMethodName, formatParameters("key", TEST_VALUE_PARAMETER));
+        addHasMethod(propertyInfo, hasStatement, 1, "key", TEST_VALUE_PARAMETER);
+    }
 
-	private void processIterableProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		CodeBlock statement = CodeBlock.of("return $L($T.hasItem($L))", genericMethodName, IsIterableContaining.class, TEST_VALUE_PARAMETER);
-		addHasMethod(propertyInfo, statement, 1, TEST_VALUE_PARAMETER);
-	}
+    private void processIterableProperty(PropertyInfo propertyInfo, String genericMethodName) {
+        CodeBlock statement = CodeBlock.of(
+            "return $L($T.hasItem($L))", genericMethodName, IsIterableContaining.class, TEST_VALUE_PARAMETER
+        );
+        addHasMethod(propertyInfo, statement, 1, TEST_VALUE_PARAMETER);
+    }
 
-	private void processCollectionProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		CodeBlock statement = CodeBlock.of("return $L(hasSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
-		addSizeMethod(propertyInfo, statement);
-	}
+    private void processCollectionProperty(PropertyInfo propertyInfo, String genericMethodName) {
+        CodeBlock statement = CodeBlock.of("return $L(hasSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
+        addSizeMethod(propertyInfo, statement);
+    }
 
-	private void processArrayProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		CodeBlock statement = CodeBlock.of("return $L(arrayWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
-		addSizeMethod(propertyInfo, statement);
-		CodeBlock hasStatement = CodeBlock.of("return $L(hasItemInArray($L))", genericMethodName, TEST_VALUE_PARAMETER);
-		addHasMethod(propertyInfo, hasStatement, 0, TEST_VALUE_PARAMETER);
-	}
+    private void processArrayProperty(PropertyInfo propertyInfo, String genericMethodName) {
+        CodeBlock statement = CodeBlock.of("return $L(arrayWithSize($L))", genericMethodName, TEST_SIZE_PARAMETER);
+        addSizeMethod(propertyInfo, statement);
+        CodeBlock hasStatement = CodeBlock.of("return $L(hasItemInArray($L))", genericMethodName, TEST_VALUE_PARAMETER);
+        addHasMethod(propertyInfo, hasStatement, 0, TEST_VALUE_PARAMETER);
+    }
 
-	private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, int offset, String... parametersNames) {
-		String methodName = String.format("has%s", propertyInfo.getName());
-		List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), offset, parametersNames);
-		addMatcherMethod(methodName, parameters, statement);
-	}
+    private void addHasMethod(PropertyInfo propertyInfo, CodeBlock statement, int offset, String... parametersNames) {
+        String methodName = String.format("has%s", propertyInfo.getName());
+        List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), offset, parametersNames);
+        addMatcherMethod(methodName, parameters, statement);
+    }
 
-	@SuppressWarnings("resource")
-	private static String formatParameters(String... parametersNames) {
-		return StreamEx.of(parametersNames).joining(", ");
-	}
+    private static String formatParameters(String... parametersNames) {
+        return StreamEx.of(parametersNames).joining(", ");
+    }
 
-	@SuppressWarnings("resource")
-	private static List<ParameterInfo> createParameters(List<TypeMirror> types, int offset, String... names) {
-		return EntryStream.of(names)
-				.mapKeys(index -> types.get(index + offset))
-				.mapKeyValue(BeanMatcherBuilder::createParameter)
-				.toList();
-	}
+    @SuppressWarnings("boxing")
+    private static List<ParameterInfo> createParameters(List<TypeMirror> types, int offset, String... names) {
+        return EntryStream.of(names)
+            .mapKeys(index -> types.get(index + offset))
+            .mapKeyValue(BeanMatcherBuilder::createParameter)
+            .toList();
+    }
 
-	private static ParameterInfo createParameter(TypeMirror type, String name) {
-		return ParameterInfo.of(getRawType(type), createParameter(TypeName.get(type), name));
-	}
+    private static ParameterInfo createParameter(TypeMirror type, String name) {
+        return ParameterInfo.of(getRawType(type), createParameter(TypeName.get(type), name));
+    }
 
-	private static ParameterSpec createParameter(TypeName type, String name) {
-		return ParameterSpec.builder(type, name).build();
-	}
+    private static ParameterSpec createParameter(TypeName type, String name) {
+        return ParameterSpec.builder(type, name).build();
+    }
 
-	private void addSizeMethod(PropertyInfo propertyInfo, CodeBlock statement) {
-		String methodName = String.format("with%sSize", propertyInfo.getName());
-		ParameterSpec parameter = createParameter(TypeName.INT, TEST_SIZE_PARAMETER);
-		addMatcherMethod(methodName, ParameterInfo.of(int.class.getCanonicalName(), parameter), statement);
-	}
+    private void addSizeMethod(PropertyInfo propertyInfo, CodeBlock statement) {
+        String methodName = String.format("with%sSize", propertyInfo.getName());
+        ParameterSpec parameter = createParameter(TypeName.INT, TEST_SIZE_PARAMETER);
+        addMatcherMethod(methodName, ParameterInfo.of(int.class.getCanonicalName(), parameter), statement);
+    }
 
-	private void processScalarProperty(PropertyInfo propertyInfo, String genericMethodName) {
-		String methodName = String.format("with%s", propertyInfo.getName());
-		List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), 0, TEST_VALUE_PARAMETER);
-		CodeBlock statement = CodeBlock.of("return $L(equalTo($L))", genericMethodName, TEST_VALUE_PARAMETER);
-		addMatcherMethod(methodName, parameters, statement);
-	}
+    private void processScalarProperty(PropertyInfo propertyInfo, String genericMethodName) {
+        String methodName = String.format("with%s", propertyInfo.getName());
+        List<ParameterInfo> parameters = createParameters(propertyInfo.getTypes(), 0, TEST_VALUE_PARAMETER);
+        CodeBlock statement = CodeBlock.of("return $L(equalTo($L))", genericMethodName, TEST_VALUE_PARAMETER);
+        addMatcherMethod(methodName, parameters, statement);
+    }
 
-	private void addMatcherMethod(String methodName, ParameterInfo parameter, CodeBlock statement) {
-		addMatcherMethod(methodName, ImmutableList.of(parameter), statement);
-	}
+    private void addMatcherMethod(String methodName, ParameterInfo parameter, CodeBlock statement) {
+        addMatcherMethod(methodName, ImmutableList.of(parameter), statement);
+    }
 
-	@SuppressWarnings({ "boxing", "resource" })
-	private void addMatcherMethod(String methodName, List<ParameterInfo> parameters, CodeBlock statement) {
+    @SuppressWarnings("boxing")
+    private void addMatcherMethod(String methodName, List<ParameterInfo> parameters, CodeBlock statement) {
 
-		MethodInfo methodInfo = StreamEx.of(parameters)
-				.map(p -> p.getType())
-				.toListAndThen(ps -> MethodInfo.of(methodName, ps));
+        MethodInfo methodInfo = StreamEx.of(parameters)
+            .map(ParameterInfo::getType)
+            .toListAndThen(ps -> MethodInfo.of(methodName, ps));
 
-		List<ParameterSpec> methodParameters = StreamEx.of(parameters)
-				.map(p -> p.getParameterSpec())
-				.toList();
+        List<ParameterSpec> methodParameters = StreamEx.of(parameters)
+            .map(ParameterInfo::getParameterSpec)
+            .toList();
 
-		int counter = methodNames.compute(methodInfo, (n, c) -> c == null ? 0 : c + 1);
-		String uniqueMethodName = methodName + (counter == 0 ? "" : Integer.toString(counter));
-		// String uniqueMethodName = methodName;
-		methodNames.putIfAbsent(MethodInfo.of(uniqueMethodName, methodInfo.getParameterTypes()), 0);
-		MethodSpec method = MethodSpec.methodBuilder(uniqueMethodName)
-				.addModifiers(Modifier.PUBLIC)
-				.addParameters(methodParameters)
-				.returns(mattcherClassName)
-				.addStatement(statement)
-				.build();
-		poetBuilder.addMethod(method);
-	}
+        int counter = methodNames.compute(methodInfo, (n, c) -> c == null ? 0 : c + 1);
+        String uniqueMethodName = methodName + (counter == 0 ? "" : Integer.toString(counter));
+        // String uniqueMethodName = methodName;
+        methodNames.putIfAbsent(MethodInfo.of(uniqueMethodName, methodInfo.getParameterTypes()), 0);
+        MethodSpec method = MethodSpec.methodBuilder(uniqueMethodName)
+            .addModifiers(Modifier.PUBLIC)
+            .addParameters(methodParameters)
+            .returns(mattcherClassName)
+            .addStatement(statement)
+            .build();
+        poetBuilder.addMethod(method);
+    }
 
-	private ParameterizedTypeName getMatcherParameterType(PropertyInfo propertyInfo) {
-		TypeName type = TypeName.get(propertyInfo.getTypes().get(0)).box();
-		switch (propertyInfo.getKind()) {
-		case SCALAR:
-			WildcardTypeName type1 = WildcardTypeName.supertypeOf(type);
-			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type1);
-		case COLLECTION:
-		case ITERABLE:
-			ParameterizedTypeName iterable = ParameterizedTypeName.get((ClassName) type, WildcardTypeName.subtypeOf(TypeName.get(propertyInfo.getTypes().get(1))));
-			WildcardTypeName type2 = WildcardTypeName.supertypeOf(iterable);
-			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type2);
-		case MAP:
-			TypeName[] wildcards = StreamEx.of(propertyInfo.getTypes())
-					.skip(1)
-					.map(TypeName::get)
-					.map(WildcardTypeName::subtypeOf)
-					.toArray(TypeName.class);
-			ParameterizedTypeName map = ParameterizedTypeName.get((ClassName) type, wildcards);
-			WildcardTypeName type3 = WildcardTypeName.supertypeOf(map);
-			return ParameterizedTypeName.get(ClassName.get(Matcher.class), type3);
-		case ARRAY:
-			ArrayTypeName array = ArrayTypeName.of(type);
-			return ParameterizedTypeName.get(ClassName.get(Matcher.class), array);
-		default:
-			String msg = String.format("Unsupported property kind %s", propertyInfo.getKind());
-			messager.printMessage(Kind.ERROR, msg);
-			throw new IllegalStateException(msg);
-		}
-	}
+    private ParameterizedTypeName getMatcherParameterType(PropertyInfo propertyInfo) {
+        TypeName type = TypeName.get(propertyInfo.getTypes().get(0)).box();
+        switch (propertyInfo.getKind()) {
+            case SCALAR:
+                WildcardTypeName type1 = WildcardTypeName.supertypeOf(type);
+                return ParameterizedTypeName.get(ClassName.get(Matcher.class), type1);
+            case COLLECTION:
+            case ITERABLE:
+                ParameterizedTypeName iterable = ParameterizedTypeName.get(
+                    (ClassName) type, WildcardTypeName.subtypeOf(TypeName.get(propertyInfo.getTypes().get(1)))
+                );
+                WildcardTypeName type2 = WildcardTypeName.supertypeOf(iterable);
+                return ParameterizedTypeName.get(ClassName.get(Matcher.class), type2);
+            case MAP:
+                TypeName[] wildcards = StreamEx.of(propertyInfo.getTypes())
+                    .skip(1)
+                    .map(TypeName::get)
+                    .map(WildcardTypeName::subtypeOf)
+                    .toArray(TypeName.class);
+                ParameterizedTypeName map = ParameterizedTypeName.get((ClassName) type, wildcards);
+                WildcardTypeName type3 = WildcardTypeName.supertypeOf(map);
+                return ParameterizedTypeName.get(ClassName.get(Matcher.class), type3);
+            case ARRAY:
+                ArrayTypeName array = ArrayTypeName.of(type);
+                return ParameterizedTypeName.get(ClassName.get(Matcher.class), array);
+            default:
+                String msg = String.format("Unsupported property kind %s", propertyInfo.getKind());
+                messager.printMessage(Kind.ERROR, msg);
+                throw new IllegalStateException(msg);
+        }
+    }
 
-	public List<ClassName> getStaticImports() {
-		staticImports.add(ClassName.get(Matchers.class));
-		return staticImports;
-	}
+    public List<ClassName> getStaticImports() {
+        staticImports.add(ClassName.get(Matchers.class));
+        return staticImports;
+    }
 
-	public TypeSpec build() {
-		return poetBuilder.build();
-	}
+    public TypeSpec build() {
+        return poetBuilder.build();
+    }
 
-	public boolean hasProperties() {
-		return hasProperties;
-	}
+    public boolean hasProperties() {
+        return hasProperties;
+    }
 
-	static String getRawType(TypeMirror mirror) {
-		return mirror.accept(new SimpleTypeVisitor8<String, Void>() {
-			@Override
-			public String visitPrimitive(PrimitiveType t, Void p) {
-				switch (t.getKind()) {
-				case BOOLEAN:
-					return boolean.class.getCanonicalName();
-				case BYTE:
-					return byte.class.getCanonicalName();
-				case SHORT:
-					return short.class.getCanonicalName();
-				case INT:
-					return int.class.getCanonicalName();
-				case LONG:
-					return long.class.getCanonicalName();
-				case CHAR:
-					return char.class.getCanonicalName();
-				case FLOAT:
-					return float.class.getCanonicalName();
-				case DOUBLE:
-					return double.class.getCanonicalName();
-				default:
-					throw new AssertionError();
-				}
-			}
+    static String getRawType(TypeMirror mirror) {
+        return mirror.accept(new SimpleTypeVisitor8<String, Void>() {
+            @Override
+            public String visitPrimitive(PrimitiveType t, Void p) {
+                switch (t.getKind()) {
+                    case BOOLEAN:
+                        return boolean.class.getCanonicalName();
+                    case BYTE:
+                        return byte.class.getCanonicalName();
+                    case SHORT:
+                        return short.class.getCanonicalName();
+                    case INT:
+                        return int.class.getCanonicalName();
+                    case LONG:
+                        return long.class.getCanonicalName();
+                    case CHAR:
+                        return char.class.getCanonicalName();
+                    case FLOAT:
+                        return float.class.getCanonicalName();
+                    case DOUBLE:
+                        return double.class.getCanonicalName();
+                    default:
+                        throw new AssertionError();
+                }
+            }
 
-			@Override
-			public String visitDeclared(DeclaredType t, Void p) {
-				return ClassName.get((TypeElement) t.asElement()).canonicalName();
-			}
+            @Override
+            public String visitDeclared(DeclaredType t, Void p) {
+                return ClassName.get((TypeElement) t.asElement()).canonicalName();
+            }
 
-			@Override
-			public String visitError(ErrorType t, Void p) {
-				return visitDeclared(t, p);
-			}
+            @Override
+            public String visitError(ErrorType t, Void p) {
+                return visitDeclared(t, p);
+            }
 
-			@Override
-			public String visitArray(ArrayType t, Void p) {
-				return getRawType(t.getComponentType());
-			}
+            @Override
+            public String visitArray(ArrayType t, Void p) {
+                return getRawType(t.getComponentType());
+            }
 
-			@Override
-			public String visitTypeVariable(javax.lang.model.type.TypeVariable t, Void p) {
-				return super.visitUnknown(t, p);
-			}
+            @Override
+            public String visitTypeVariable(javax.lang.model.type.TypeVariable t, Void p) {
+                return super.visitUnknown(t, p);
+            }
 
-			@Override
-			public String visitWildcard(javax.lang.model.type.WildcardType t, Void p) {
-				return super.visitUnknown(t, p);
-			}
+            @Override
+            public String visitWildcard(javax.lang.model.type.WildcardType t, Void p) {
+                return super.visitUnknown(t, p);
+            }
 
-			@Override
-			public String visitNoType(NoType t, Void p) {
-				if (t.getKind() == TypeKind.VOID) {
-					return void.class.getCanonicalName();
-				}
-				return super.visitUnknown(t, p);
-			}
+            @Override
+            public String visitNoType(NoType t, Void p) {
+                if (t.getKind() == TypeKind.VOID) {
+                    return void.class.getCanonicalName();
+                }
+                return super.visitUnknown(t, p);
+            }
 
-			@Override
-			protected String defaultAction(TypeMirror e, Void p) {
-				throw new IllegalArgumentException("Unexpected type mirror: " + e);
-			}
-		}, null);
-	}
+            @Override
+            protected String defaultAction(TypeMirror e, Void p) {
+                throw new IllegalArgumentException("Unexpected type mirror: " + e);
+            }
+        }, null);
+    }
 
 }

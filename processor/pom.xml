@@ -70,12 +70,10 @@
 						<path>
 							<groupId>com.google.auto.service</groupId>
 							<artifactId>auto-service</artifactId>
-							<version>${auto-service.ver}</version>
 						</path>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
-							<version>${lombok.ver}</version>
 						</path>
 					</annotationProcessorPaths>
 				</configuration>
