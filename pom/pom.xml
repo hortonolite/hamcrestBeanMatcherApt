@@ -24,6 +24,7 @@
         <module>../test</module>
     </modules>
     <properties>
+        <maven-release-plugin-version>3.0.0-M5</maven-release-plugin-version>
         <auto-service-annotations-version>1.1.1</auto-service-annotations-version>
         <javapoet-version>1.13.0</javapoet-version>
         <guava-version>33.4.8-jre</guava-version>
