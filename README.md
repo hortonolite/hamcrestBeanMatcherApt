@@ -10,46 +10,77 @@ For example, for Java bean
 ```Java
 @Value
 @Builder
-public class TestBean01 {
-	String stringValue;
+public class TestBean {
+    String stringValue;
+    List<String> listValue;
 }
 ```
 it will generate the following matcher builder
 ```Java
-public class TestBean01Matcher extends AbstractBeanMatcher<TestBean01> {
-	public static TestBean01Matcher create() {
-		return new TestBean01Matcher();
+public class TestBeanMatcher extends AbstractBeanMatcher<TestBean> {
+	public static TestBeanMatcher create() {
+		return new TestBeanMatcher();
 	}
-	public static TestBean01Matcher testBean01Matcher() {
+	public static TestBeanMatcher testBeanMatcher() {
 		return create();
 	}
-	protected TestBean01Matcher add(String propertyName, final Matcher<?> matcher) {
+	protected TestBeanMatcher add(String propertyName, Matcher<?> matcher) {
 		addPropertyMatcher(propertyName, matcher);
 		return this;
 	}
-	public TestBean01Matcher withStringValue(Matcher<? super String> matcher) {
+	public TestBeanMatcher withStringValue(Matcher<? super String> matcher) {
 		return add("stringValue", matcher);
 	}
-	public TestBean01Matcher withStringValue(String testValue) {
-		return withStringValue(equalTo(testValue));
+	public TestBeanMatcher withStringValue(String value) {
+		return withStringValue(equalTo(value));
+	}
+	public TestBeanMatcher withListValue(Matcher<? super List<? extends String>> matcher) {
+		return add("listValue", matcher);
+	}
+	public TestBeanMatcher hasListValue(String value) {
+		return withListValue(IsIterableContaining.hasItem(value));
+	}
+	public TestBeanMatcher withListValueSize(int size) {
+		return withListValue(hasSize(size));
 	}
 }
 ```
 The generated matcher builder you can use in your tests
 ```Java
-	@ParameterizedTest
-	@MethodSource
-	void testTestBean01(Matcher<TestBean01> matcher) {
-		TestBean01 bean = TestBean01.builder()
-				.stringValue("value01")
-				.build();
-		assertThat(bean, matcher);
-	}
-	private static Stream<Arguments> testTestBean01() {
-		return Stream.of(
-				Arguments.of(testBean01Matcher().withStringValue("value01")),
-				Arguments.of(testBean01Matcher().withStringValue(StringContains.containsStringIgnoringCase("lUe"))));
-	}
+import org.hamcrest.Matcher;
+import org.hamcrest.core.StringContains;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.StringContains.containsStringIgnoringCase;
+import static org.jresearch.hamcrest.beanmatcher.test.TestBeanMatcher.*;
+
+    @ParameterizedTest
+    @MethodSource
+    @SuppressWarnings("static-method")
+    void testTestBean(Matcher<TestBean> matcher) {
+        TestBean bean = TestBean.builder()
+                .stringValue("value01")
+                .listValue(List.of("value03", "value03"))
+                .build();
+        assertThat(bean, matcher);
+    }
+
+    private static Stream<Arguments> testTestBean() {
+        return Stream.of(
+                Arguments.of(testBeanMatcher()
+                    .withListValueSize(2)
+                    .withStringValue("value01")),
+                Arguments.of(testBeanMatcher()
+                    .hasListValue("value03")
+                    .withStringValue(containsStringIgnoringCase("lUe"))));
+    }
 ```
 ## Generated methods
 For each property generates general method accepted Matcher for this property:
